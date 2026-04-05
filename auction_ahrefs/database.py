@@ -20,6 +20,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 from auction_ahrefs.models import AhrefsBundle, AuctionListing
 
 
+def _as_utc_aware(dt: datetime) -> datetime:
+    """SQLite often returns naive datetimes; normalize for safe comparison."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -124,11 +131,12 @@ def insert_run(
 def get_cached_ahrefs(
     session: Session, domain: str, ttl_days: int, now: datetime | None = None
 ) -> AhrefsCacheRow | None:
-    now = now or datetime.now(timezone.utc)
+    now_utc = _as_utc_aware(now or datetime.now(timezone.utc))
     row = session.get(AhrefsCacheRow, domain.lower())
     if row is None:
         return None
-    age = now - row.fetched_at
+    fetched = _as_utc_aware(row.fetched_at)
+    age = now_utc - fetched
     if age.days >= ttl_days:
         return None
     return row
