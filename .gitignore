@@ -7,3 +7,4 @@ data/
 *.sqlite
 *.db
 config.yaml
+exports-downloaded/

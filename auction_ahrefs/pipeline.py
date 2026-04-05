@@ -9,6 +9,7 @@ from auction_ahrefs.alerts import send_webhook_summary
 from auction_ahrefs.config import AppConfig, load_config
 from auction_ahrefs.database import (
     domains_for_run,
+    export_rows_for_run,
     fetch_latest_run_domains_with_ahrefs,
     get_cached_ahrefs,
     init_db,
@@ -18,6 +19,8 @@ from auction_ahrefs.database import (
     session_factory,
     upsert_ahrefs_cache,
 )
+from auction_ahrefs.export_report import write_run_export
+from auction_ahrefs.report_email import send_report_email
 from auction_ahrefs.godaddy import fetch_godaddy_listings
 from auction_ahrefs.namecheap import load_namecheap
 from auction_ahrefs.prefilter import apply_rules, cap_for_ahrefs, sort_listings
@@ -143,6 +146,39 @@ def run_pipeline(cfg: AppConfig | None = None, *, skip_ahrefs: bool = False) -> 
             )
         except Exception:
             log.exception("Webhook alert failed")
+
+    export_path = None
+    if cfg.export.enabled:
+        try:
+            rows = export_rows_for_run(session, run_id)
+            export_path = write_run_export(cfg.export, run_id, rows)
+            log.info("Export written: %s", export_path)
+        except Exception:
+            log.exception("Export failed")
+
+    if cfg.email_report.enabled:
+        if export_path is None:
+            log.warning(
+                "email_report enabled but no export file was produced "
+                "(set export.enabled: true or fix export errors)"
+            )
+        else:
+            try:
+                subj = cfg.email_report.subject_template.format(run_id=run_id)
+                body = (
+                    f"Auction Ahrefs finished run_id={run_id}.\n"
+                    f"Stats: {stats}\n\n"
+                    f"See attached {export_path.name}."
+                )
+                send_report_email(
+                    cfg.email_report,
+                    subject=subj,
+                    body=body,
+                    attachments=[export_path],
+                )
+                log.info("Report email sent to %s", cfg.email_report.to_addrs)
+            except Exception:
+                log.exception("Report email failed")
 
     session.close()
     return run_id

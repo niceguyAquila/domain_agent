@@ -52,3 +52,24 @@ alerts:
   webhook_format: "slack"
   webhook_top_n: 15
   min_domain_rating_to_include: 5.0
+
+# Spreadsheet-friendly output (opens in Excel). Relative paths are from the process cwd (use cron cd).
+export:
+  enabled: true
+  format: "csv" # csv | xlsx (xlsx needs: pip install openpyxl)
+  output_dir: "./exports"
+  # Name placeholders: {run_id} {utc_date} {utc_time} {utc_datetime} (UTC when the file is written)
+  filename_template: "auction_ahrefs_run_{run_id}_{utc_datetime}"
+
+# Email the export after each run. Password via env (default SMTP_PASSWORD).
+email_report:
+  enabled: false
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  use_tls: true
+  use_ssl: false
+  smtp_user: "you@gmail.com"
+  smtp_password_env: "SMTP_PASSWORD"
+  from_addr: null
+  to_addrs: ["you@gmail.com"]
+  subject_template: "Auction Ahrefs run {run_id}"

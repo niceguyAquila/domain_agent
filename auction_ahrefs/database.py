@@ -193,6 +193,51 @@ def fetch_latest_run_domains_with_ahrefs(
     return out
 
 
+def export_rows_for_run(session: Session, run_id: int) -> list[dict[str, Any]]:
+    stmt = select(ListingRow).where(ListingRow.run_id == run_id)
+    rows = list(session.scalars(stmt))
+    out: list[dict[str, Any]] = []
+    for lr in rows:
+        c = session.get(AhrefsCacheRow, lr.domain)
+        raw = lr.raw_json if isinstance(lr.raw_json, dict) else {}
+        end = lr.auction_end_time
+        end_s = end.isoformat() if end else ""
+        fetched = ""
+        if c and c.fetched_at:
+            fetched = _as_utc_aware(c.fetched_at).isoformat()
+        org_cost_usd = None
+        if c and c.org_cost_usd_cents is not None:
+            org_cost_usd = round(c.org_cost_usd_cents / 100.0, 2)
+        out.append(
+            {
+                "run_id": run_id,
+                "domain": lr.domain,
+                "source": lr.source,
+                "bids": lr.bids,
+                "price_usd": lr.price_usd,
+                "auction_end_utc": end_s,
+                "auction_type": lr.auction_type,
+                "detail_url": lr.detail_url,
+                "domain_age_years": raw.get("domainAge"),
+                "domain_rating": c.domain_rating if c else None,
+                "ahrefs_rank": c.ahrefs_rank if c else None,
+                "org_keywords": c.org_keywords if c else None,
+                "org_traffic": c.org_traffic if c else None,
+                "org_traffic_value_usd": org_cost_usd,
+                "ahrefs_report_date": c.report_date if c else "",
+                "ahrefs_fetched_utc": fetched,
+            }
+        )
+    out.sort(
+        key=lambda x: (
+            -(x["domain_rating"] or -1.0),
+            -(x["org_traffic"] or 0),
+            x["domain"],
+        )
+    )
+    return out
+
+
 def previous_run_id(session: Session, before_run_id: int) -> int | None:
     stmt = (
         select(RunRow.id)

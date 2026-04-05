@@ -61,6 +61,27 @@ class AlertsConfig(BaseModel):
     webhook_format: Literal["slack", "discord"] = "slack"
 
 
+class ExportConfig(BaseModel):
+    enabled: bool = False
+    format: Literal["csv", "xlsx"] = "csv"
+    output_dir: str = "./exports"
+    # Placeholders: {run_id} {utc_date} {utc_time} {utc_datetime} (UTC at write time)
+    filename_template: str = "auction_ahrefs_run_{run_id}_{utc_datetime}"
+
+
+class EmailReportConfig(BaseModel):
+    enabled: bool = False
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    use_tls: bool = True
+    use_ssl: bool = False
+    smtp_user: str = ""
+    smtp_password_env: str = "SMTP_PASSWORD"
+    from_addr: str | None = None
+    to_addrs: list[str] = Field(default_factory=list)
+    subject_template: str = "Auction Ahrefs run {run_id}"
+
+
 class AppConfig(BaseModel):
     godaddy: GodaddyConfig = Field(default_factory=GodaddyConfig)
     namecheap: NamecheapConfig = Field(default_factory=NamecheapConfig)
@@ -68,6 +89,8 @@ class AppConfig(BaseModel):
     ahrefs: AhrefsConfig = Field(default_factory=AhrefsConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     alerts: AlertsConfig = Field(default_factory=AlertsConfig)
+    export: ExportConfig = Field(default_factory=ExportConfig)
+    email_report: EmailReportConfig = Field(default_factory=EmailReportConfig)
 
 
 def load_config(path: str | Path) -> AppConfig:
