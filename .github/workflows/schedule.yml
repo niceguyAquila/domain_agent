@@ -1,0 +1,40 @@
+name: auction-ahrefs
+
+on:
+  schedule:
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ensure config
+        run: |
+          if [ ! -f config.yaml ]; then cp config.example.yaml config.yaml; fi
+
+      - name: Run pipeline
+        env:
+          AHREFS_API_KEY: ${{ secrets.AHREFS_API_KEY }}
+          ALERT_WEBHOOK_URL: ${{ secrets.ALERT_WEBHOOK_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SQLITE_PATH: ${{ github.workspace }}/data/pipeline.db
+          CONFIG_PATH: ${{ github.workspace }}/config.yaml
+        run: python -m auction_ahrefs run --config "$CONFIG_PATH"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-data
+          path: data/

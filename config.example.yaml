@@ -1,0 +1,54 @@
+# Copy to config.yaml and adjust. Override paths via env: CONFIG_PATH, SQLITE_PATH, DATABASE_URL.
+
+godaddy:
+  enabled: true
+  # Expiring (non-adult) bulk feed — matches "expiring auction" sourcing. Other options:
+  # auctions_ending_today.json.zip, auctions_ending_tomorrow.json.zip
+  inventory_zip_url: "https://inventory.auctions.godaddy.com/expiring_auctions_non_adult.json.zip"
+
+namecheap:
+  enabled: false
+  csv_path: "./imports/namecheap_auctions.csv"
+  csv_url: null
+
+prefilter:
+  max_domains_to_ahrefs: 50
+  allowed_tlds: [".com", ".net", ".org", ".co"]
+  min_bids: 0
+  min_price_usd: null
+  max_price_usd: null
+  min_domain_length: 3
+  max_domain_length: 63
+  domain_contains: []
+  exclude_adult: true
+  # ASCII + punycode (xn--) domains dropped when true
+  exclude_idn: true
+  # From GoDaddy inventory field domainAge (years)
+  min_domain_age_years: 5
+  # Only keep listings whose auction ends within this many hours from job time (UTC).
+  # ~24 = "about 1 day left". Widen if your scheduler timezone differs from UTC.
+  max_hours_until_auction_end: 24
+  # Optional: require at least this many hours before end (e.g. 1 to skip last-minute only)
+  min_hours_until_auction_end: null
+  # GoDaddy JSON uses Bid | BuyNow in expiring feeds. null = allow both.
+  # Use ["Bid"] for classic auctions only (excludes Buy Now / closeout-style rows).
+  auction_types_allowed: ["Bid"]
+  sort_before_cap: "bids_desc"
+
+ahrefs:
+  api_base: "https://api.ahrefs.com/v3"
+  report_date_offset_days: 1
+  cache_ttl_days: 14
+  sleep_between_requests_sec: 0.6
+  max_retries: 4
+  fetch_domain_rating: true
+  fetch_metrics: true
+
+storage:
+  sqlite_path: "./data/pipeline.db"
+
+alerts:
+  webhook_url: null
+  webhook_format: "slack"
+  webhook_top_n: 15
+  min_domain_rating_to_include: 5.0
