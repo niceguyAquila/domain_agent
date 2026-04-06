@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,9 @@ _CSV_FIELDS = [
 ]
 
 
-def export_path_for_run(cfg: ExportConfig, run_id: int) -> Path:
+def export_path_for_run(
+    cfg: ExportConfig, run_id: int, *, output_root: Path | None = None
+) -> Path:
     fmt = cfg.format
     ext = "xlsx" if fmt == "xlsx" else "csv"
     now = datetime.now(timezone.utc)
@@ -39,15 +42,27 @@ def export_path_for_run(cfg: ExportConfig, run_id: int) -> Path:
     )
     if not name.lower().endswith(f".{ext}"):
         name = f"{name}.{ext}"
-    return Path(cfg.output_dir) / name
+    root = Path(cfg.output_dir) if output_root is None else output_root
+    return root / name
 
 
 def write_run_export(
-    cfg: ExportConfig, run_id: int, rows: list[dict[str, Any]]
+    cfg: ExportConfig,
+    run_id: int,
+    rows: list[dict[str, Any]],
+    *,
+    config_file: Path | None = None,
 ) -> Path:
     out_dir = Path(cfg.output_dir)
+    if not out_dir.is_absolute():
+        base = (
+            config_file
+            if config_file is not None
+            else Path(os.environ.get("CONFIG_PATH", "config.yaml"))
+        )
+        out_dir = base.resolve().parent / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = export_path_for_run(cfg, run_id)
+    path = export_path_for_run(cfg, run_id, output_root=out_dir)
 
     if cfg.format == "xlsx":
         _write_xlsx(path, rows)

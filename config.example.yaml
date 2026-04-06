@@ -53,7 +53,7 @@ alerts:
   webhook_top_n: 15
   min_domain_rating_to_include: 5.0
 
-# Spreadsheet-friendly output (opens in Excel). Relative paths are from the process cwd (use cron cd).
+# Spreadsheet-friendly output (opens in Excel). Relative output_dir is under the config file's directory (not cwd).
 export:
   enabled: true
   format: "csv" # csv | xlsx (xlsx needs: pip install openpyxl)

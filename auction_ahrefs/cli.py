@@ -5,7 +5,12 @@ import json
 import sys
 from pathlib import Path
 
-from auction_ahrefs.pipeline import dry_run, load_app_config, run_pipeline
+from auction_ahrefs.pipeline import (
+    dry_run,
+    load_app_config,
+    resolve_config_path,
+    run_pipeline,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = p.parse_args(argv)
+    cfg_path = resolve_config_path(args.config)
     cfg = load_app_config(args.config) if args.config else load_app_config()
 
     if args.cmd == "dry-run":
@@ -59,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.cmd == "run":
-        rid = run_pipeline(cfg, skip_ahrefs=args.skip_ahrefs)
+        rid = run_pipeline(cfg, skip_ahrefs=args.skip_ahrefs, config_path=cfg_path)
         print(f"run_id={rid}")
         return 0
 

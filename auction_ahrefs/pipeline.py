@@ -32,6 +32,13 @@ def _config_path() -> Path:
     return Path(os.environ.get("CONFIG_PATH", "config.yaml"))
 
 
+def resolve_config_path(cli_config: str | Path | None = None) -> Path:
+    """Absolute path to the YAML config file (for anchoring relative paths like export.output_dir)."""
+    if cli_config is not None:
+        return Path(cli_config).resolve()
+    return _config_path().resolve()
+
+
 def load_app_config(path: str | Path | None = None) -> AppConfig:
     if path is not None:
         p = Path(path)
@@ -60,8 +67,14 @@ def ingest_listings(cfg: AppConfig) -> list:
     return rows
 
 
-def run_pipeline(cfg: AppConfig | None = None, *, skip_ahrefs: bool = False) -> int:
+def run_pipeline(
+    cfg: AppConfig | None = None,
+    *,
+    skip_ahrefs: bool = False,
+    config_path: Path | None = None,
+) -> int:
     cfg = cfg or load_app_config()
+    cfg_file = config_path or resolve_config_path()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     all_rows = ingest_listings(cfg)
@@ -151,7 +164,9 @@ def run_pipeline(cfg: AppConfig | None = None, *, skip_ahrefs: bool = False) -> 
     if cfg.export.enabled:
         try:
             rows = export_rows_for_run(session, run_id)
-            export_path = write_run_export(cfg.export, run_id, rows)
+            export_path = write_run_export(
+                cfg.export, run_id, rows, config_file=cfg_file
+            )
             log.info("Export written: %s", export_path)
         except Exception:
             log.exception("Export failed")
