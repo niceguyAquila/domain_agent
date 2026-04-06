@@ -36,6 +36,8 @@ from auction_ahrefs.util import load_dotenv_from_repo_root
 
 log = logging.getLogger(__name__)
 
+_DEFAULT_OUTPUT_DIR = _REPO_ROOT / "export" / "namecheap"
+
 _OUTPUT_FIELDS = [
     "domain",
     "price_usd",
@@ -128,7 +130,7 @@ def main(argv: list[str] | None = None) -> int:
         "--output",
         type=Path,
         default=None,
-        help="Write results CSV here (default: <input>_ahrefs.csv)",
+        help="Write results CSV here (default: /export/namecheap/<input>_ahrefs.csv)",
     )
     p.add_argument(
         "-c",
@@ -182,7 +184,7 @@ def main(argv: list[str] | None = None) -> int:
 
     out_path = args.output
     if out_path is None:
-        out_path = inp.with_name(f"{inp.stem}_ahrefs.csv")
+        out_path = _DEFAULT_OUTPUT_DIR / f"{inp.stem}_ahrefs.csv"
 
     rows_out: list[dict[str, object]] = []
     for L in listings:
