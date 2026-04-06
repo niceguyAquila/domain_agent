@@ -2,6 +2,17 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from pathlib import Path
+
+
+def load_dotenv_from_repo_root() -> None:
+    """Populate os.environ from ``<repo>/.env`` if present (does not override existing vars)."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    root = Path(__file__).resolve().parents[1]
+    load_dotenv(root / ".env")
 
 
 def parse_usd_price(value: str | float | int | None) -> float | None:

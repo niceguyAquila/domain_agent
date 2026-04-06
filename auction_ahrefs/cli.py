@@ -11,9 +11,11 @@ from auction_ahrefs.pipeline import (
     resolve_config_path,
     run_pipeline,
 )
+from auction_ahrefs.util import load_dotenv_from_repo_root
 
 
 def main(argv: list[str] | None = None) -> int:
+    load_dotenv_from_repo_root()
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument(
         "--config",

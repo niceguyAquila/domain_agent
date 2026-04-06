@@ -8,3 +8,4 @@ data/
 *.db
 config.yaml
 exports-downloaded/
+*.csv
