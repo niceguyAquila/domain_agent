@@ -28,13 +28,17 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-# Optional convenience: auto-export vars from .env if present.
-if [[ -f ".env" ]]; then
+# Optional convenience: export vars from .env (repo root and/or scripts/ next to this file).
+_load_env_file() {
+  local f="$1"
+  [[ -f "$f" ]] || return 0
   set -a
   # shellcheck disable=SC1091
-  source ".env"
+  source "$f"
   set +a
-fi
+}
+_load_env_file "$REPO_ROOT/.env"
+_load_env_file "$SCRIPT_DIR/.env"
 
 if [[ -z "${AHREFS_API_KEY:-}" ]]; then
   echo "AHREFS_API_KEY is not set. Put it in .env or export it in shell."
