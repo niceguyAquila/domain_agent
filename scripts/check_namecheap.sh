@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Run the local Namecheap CSV -> Ahrefs script on VPS.
 # Usage:
-#   ./scripts/run_namecheap_vps.sh /path/to/namecheap.csv [output.csv] [config.yaml]
+#   ./scripts/check_namecheap.sh /path/to/namecheap.csv [output.csv] [config.yaml]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -28,14 +28,32 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-# Optional convenience: export vars from .env (repo root and/or scripts/ next to this file).
+# Optional convenience: export KEY=value lines from .env (dotenv-style).
+# Uses a small parser so spaces around "=" work; plain `source .env` treats `KEY = val` as a command.
 _load_env_file() {
-  local f="$1"
+  local f="$1" line key val
   [[ -f "$f" ]] || return 0
-  set -a
-  # shellcheck disable=SC1091
-  source "$f"
-  set +a
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ "$line" =~ ^(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+      key="${BASH_REMATCH[2]}"
+      val="${BASH_REMATCH[3]}"
+    elif [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*:[[:space:]]+(.+)$ ]]; then
+      key="${BASH_REMATCH[1]}"
+      val="${BASH_REMATCH[2]}"
+    else
+      continue
+    fi
+    if [[ "$val" =~ ^\"(.*)\"$ ]]; then
+      val="${BASH_REMATCH[1]}"
+    elif [[ "$val" =~ ^\'(.*)\'$ ]]; then
+      val="${BASH_REMATCH[1]}"
+    fi
+    export "${key}=${val}"
+  done < "$f"
 }
 _load_env_file "$REPO_ROOT/.env"
 _load_env_file "$SCRIPT_DIR/.env"
