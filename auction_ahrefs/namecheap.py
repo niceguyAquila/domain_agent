@@ -71,9 +71,23 @@ def load_namecheap_csv_url(url: str, timeout_sec: float = 60.0) -> list[AuctionL
     return _parse_csv_text(r.text)
 
 
+def _dict_reader(text: str) -> csv.DictReader:
+    """Use comma, semicolon, or tab as delimiter (Namecheap exports often use ``;``)."""
+    sample = text[:16384]
+    try:
+        dialect = csv.Sniffer().sniff(sample, delimiters=";,\t")
+        return csv.DictReader(io.StringIO(text), dialect=dialect)
+    except csv.Error:
+        pass
+    first = next((ln for ln in text.splitlines() if ln.strip()), "")
+    delim = ";" if first.count(";") > first.count(",") else ","
+    return csv.DictReader(io.StringIO(text), delimiter=delim)
+
+
 def _parse_csv_text(text: str) -> list[AuctionListing]:
-    f = io.StringIO(text)
-    reader = csv.DictReader(f)
+    if not text.strip():
+        return []
+    reader = _dict_reader(text)
     out: list[AuctionListing] = []
     for row in reader:
         if not row:
